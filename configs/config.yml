@@ -1,0 +1,4 @@
+env.path: "configs"
+
+logger.info: "logs/info.log"
+logger.error: "logs/error.log"
