@@ -1,0 +1,7 @@
+services:
+  app:
+    container_name: intelligent-data-processing
+    build:
+      context: .
+      dockerfile: Dockerfile
+
