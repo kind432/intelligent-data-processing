@@ -67,15 +67,15 @@ func messageHandler(loggers logger.Loggers) mqtt.MessageHandler {
 			return
 		}
 
-		re := regexp.MustCompile(`([^/]+)@[^/]+/sensor/(.+)/state`)
+		re := regexp.MustCompile(`([^/]+)@[^/]+/sensor/(ROBBO_protos_\d+_.+)/state`)
 		matches := re.FindStringSubmatch(msg.Topic())
 		if len(matches) != 3 {
 			loggers.Err.Printf("Failed to parse topic: '%s'", msg.Topic())
 			return
 		}
 
-		serialNumber := matches[1]
-		dataKey := matches[2]
+		serialNumber := strings.Replace(matches[2], "_", "-", -1) // заменяем _ на -
+		dataKey := strings.Split(matches[2], "_")[1]              // разделяем по "_" и получаем последний элемент
 
 		loggers.Info.Printf("Parsed serialNumber: %s, dataKey: %s", serialNumber, dataKey)
 
