@@ -9,9 +9,6 @@ import (
 )
 
 type TopicHandler struct {
-	SensorType string
-	// returning: rawData, processedData, error
-	ProcessFunc     func([]byte) (map[string]interface{}, map[string]interface{}, error)
 	OutputRawTopic  string
 	OutputProcTopic string
 }
@@ -21,94 +18,64 @@ type TopicHandler struct {
 // Then:
 // TopicHandler:
 // "+/sensor/temperature_2/state" : {
-// 		SensorType:      "default",
-//		ProcessFunc:     func([]byte) (map[string]interface{}, map[string]interface{}, error),
 //		OutputRawTopic:  "sensor/temperature_2/raw",
 //		OutputProcTopic: "sensor/temperature_2/proc",
 //	}
 
 var topicHandlers = map[string]TopicHandler{
 	"+/sensor/temperature_1/state": {
-		SensorType:      "default",
-		ProcessFunc:     processTemperature1,
 		OutputRawTopic:  "sensor/temperature_1/raw",
 		OutputProcTopic: "sensor/temperature_1/proc",
 	},
 	"+/sensor/temperature_2/state": {
-		SensorType:      "default",
-		ProcessFunc:     processTemperature2,
 		OutputRawTopic:  "sensor/temperature_2/raw",
 		OutputProcTopic: "sensor/temperature_2/proc",
 	},
 	"+/sensor/motor_current/state": {
-		SensorType:      "default",
-		ProcessFunc:     processMotorCurrent,
 		OutputRawTopic:  "sensor/motor_current/raw",
 		OutputProcTopic: "sensor/motor_current/proc",
 	},
 	"+/sensor/gas_sensor/state": {
-		SensorType:      "default",
-		ProcessFunc:     processGasSensor,
 		OutputRawTopic:  "sensor/gas_sensor/raw",
 		OutputProcTopic: "sensor/gas_sensor/proc",
 	},
 	"+/sensor/mpu6050_temperature/state": {
-		SensorType:      "default",
-		ProcessFunc:     processMPU6050Temperature,
 		OutputRawTopic:  "sensor/mpu6050_temperature/raw",
 		OutputProcTopic: "sensor/mpu6050_temperature/proc",
 	},
 	"+/sensor/mpu6050_gyro_z/state": {
-		SensorType:      "default",
-		ProcessFunc:     processMPU6050GyroZ,
 		OutputRawTopic:  "sensor/mpu6050_gyro_z/raw",
 		OutputProcTopic: "sensor/mpu6050_gyro_z/proc",
 	},
 	"+/sensor/mpu6050_accel_z/state": {
-		SensorType:      "default",
-		ProcessFunc:     processMPU6050AccelZ,
 		OutputRawTopic:  "sensor/mpu6050_accel_z/raw",
 		OutputProcTopic: "sensor/mpu6050_accel_z/proc",
 	},
 	"+/sensor/mpu6050_gyro_y/state": {
-		SensorType:      "default",
-		ProcessFunc:     processMPU6050GyroY,
 		OutputRawTopic:  "sensor/mpu6050_gyro_y/raw",
 		OutputProcTopic: "sensor/mpu6050_gyro_y/proc",
 	},
 	"+/sensor/mpu6050_accel_y/state": {
-		SensorType:      "default",
-		ProcessFunc:     processMPU6050AccelY,
 		OutputRawTopic:  "sensor/mpu6050_accel_y/raw",
 		OutputProcTopic: "sensor/mpu6050_accel_y/proc",
 	},
 	"+/sensor/mpu6050_gyro_x/state": {
-		SensorType:      "default",
-		ProcessFunc:     processMPU6050GyroX,
 		OutputRawTopic:  "sensor/mpu6050_gyro_x/raw",
 		OutputProcTopic: "sensor/mpu6050_gyro_x/proc",
 	},
 	"+/sensor/mpu6050_accel_x/state": {
-		SensorType:      "default",
-		ProcessFunc:     processMPU6050AccelX,
 		OutputRawTopic:  "sensor/mpu6050_accel_x/raw",
 		OutputProcTopic: "sensor/mpu6050_accel_x/proc",
 	},
 	"+/sensor/ina226_power/state": {
-		SensorType:      "default",
-		ProcessFunc:     processINA226Power,
 		OutputRawTopic:  "sensor/ina226_power/raw",
 		OutputProcTopic: "sensor/ina226_power/proc",
 	},
 	"+/sensor/ina226_current/state": {
-		SensorType:      "default",
-		ProcessFunc:     processINA226Current,
 		OutputRawTopic:  "sensor/ina226_current/raw",
 		OutputProcTopic: "sensor/ina226_current/proc",
 	},
 	"+/sensor/ina226_shunt_voltage/state": {
-		SensorType:      "default",
-		ProcessFunc:     processINA226ShuntVoltage,
 		OutputRawTopic:  "sensor/ina226_shunt_voltage/raw",
 		OutputProcTopic: "sensor/ina226_shunt_voltage/proc",
 	},
@@ -142,7 +109,7 @@ func messageHandler(loggers logger.Loggers) mqtt.MessageHandler {
 		}
 
 		connectData := Connect{
-			SensorType: handler.SensorType,
+			SensorType: "default",
 		}
 		connectDeviceTopic := serialNumber + "/" + ConnectTopic
 		if err := publishMessage(client, connectDeviceTopic, connectData, loggers); err != nil {
@@ -150,20 +117,18 @@ func messageHandler(loggers logger.Loggers) mqtt.MessageHandler {
 			return
 		}
 
-		rawData, processedData, err := handler.ProcessFunc(msg.Payload())
+		rawData, processedData, err := processSensorData(serialNumber, dataKey, msg.Payload())
 		if err != nil {
 			loggers.Err.Printf("Error processing message: %v", err)
 			return
 		}
 
-		rawData["sensorType"] = handler.SensorType
 		outputRawTopic := serialNumber + "/" + handler.OutputRawTopic
 		if err := publishMessage(client, outputRawTopic, rawData, loggers); err != nil {
 			loggers.Err.Printf("Failed to publish raw data: %v", err)
 			return
 		}
 
-		processedData["sensorType"] = handler.SensorType
 		outputProcTopic := serialNumber + "/" + handler.OutputProcTopic
 		if err := publishMessage(client, outputProcTopic, processedData, loggers); err != nil {
 			loggers.Err.Printf("Failed to publish processed data: %v", err)
