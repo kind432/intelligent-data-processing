@@ -5,6 +5,7 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"intelligent-data-processing/pkg/logger"
+	"regexp"
 	"strings"
 )
 
@@ -13,72 +14,48 @@ type TopicHandler struct {
 	OutputProcTopic string
 }
 
-// Example:
-// Topic: SN-001/sensor/temperature_2/state
-// Then:
-// TopicHandler:
-// "+/sensor/temperature_2/state" : {
-//		OutputRawTopic:  "sensor/temperature_2/raw",
-//		OutputProcTopic: "sensor/temperature_2/proc",
-//	}
+var topicHandlers = make(map[string]TopicHandler)
 
-var topicHandlers = map[string]TopicHandler{
-	"+/sensor/temperature_1/state": {
-		OutputRawTopic:  "sensor/temperature_1/raw",
-		OutputProcTopic: "sensor/temperature_1/proc",
-	},
-	"+/sensor/temperature_2/state": {
-		OutputRawTopic:  "sensor/temperature_2/raw",
-		OutputProcTopic: "sensor/temperature_2/proc",
-	},
-	"+/sensor/motor_current/state": {
-		OutputRawTopic:  "sensor/motor_current/raw",
-		OutputProcTopic: "sensor/motor_current/proc",
-	},
-	"+/sensor/gas_sensor/state": {
-		OutputRawTopic:  "sensor/gas_sensor/raw",
-		OutputProcTopic: "sensor/gas_sensor/proc",
-	},
-	"+/sensor/mpu6050_temperature/state": {
-		OutputRawTopic:  "sensor/mpu6050_temperature/raw",
-		OutputProcTopic: "sensor/mpu6050_temperature/proc",
-	},
-	"+/sensor/mpu6050_gyro_z/state": {
-		OutputRawTopic:  "sensor/mpu6050_gyro_z/raw",
-		OutputProcTopic: "sensor/mpu6050_gyro_z/proc",
-	},
-	"+/sensor/mpu6050_accel_z/state": {
-		OutputRawTopic:  "sensor/mpu6050_accel_z/raw",
-		OutputProcTopic: "sensor/mpu6050_accel_z/proc",
-	},
-	"+/sensor/mpu6050_gyro_y/state": {
-		OutputRawTopic:  "sensor/mpu6050_gyro_y/raw",
-		OutputProcTopic: "sensor/mpu6050_gyro_y/proc",
-	},
-	"+/sensor/mpu6050_accel_y/state": {
-		OutputRawTopic:  "sensor/mpu6050_accel_y/raw",
-		OutputProcTopic: "sensor/mpu6050_accel_y/proc",
-	},
-	"+/sensor/mpu6050_gyro_x/state": {
-		OutputRawTopic:  "sensor/mpu6050_gyro_x/raw",
-		OutputProcTopic: "sensor/mpu6050_gyro_x/proc",
-	},
-	"+/sensor/mpu6050_accel_x/state": {
-		OutputRawTopic:  "sensor/mpu6050_accel_x/raw",
-		OutputProcTopic: "sensor/mpu6050_accel_x/proc",
-	},
-	"+/sensor/ina226_power/state": {
-		OutputRawTopic:  "sensor/ina226_power/raw",
-		OutputProcTopic: "sensor/ina226_power/proc",
-	},
-	"+/sensor/ina226_current/state": {
-		OutputRawTopic:  "sensor/ina226_current/raw",
-		OutputProcTopic: "sensor/ina226_current/proc",
-	},
-	"+/sensor/ina226_shunt_voltage/state": {
-		OutputRawTopic:  "sensor/ina226_shunt_voltage/raw",
-		OutputProcTopic: "sensor/ina226_shunt_voltage/proc",
-	},
+func initTopicHandlers() {
+	sensors := []struct {
+		Key        string
+		RawSuffix  string
+		ProcSuffix string
+	}{
+		{"temperature_1", "sensor/temperature_1/raw", "sensor/temperature_1/proc"},
+		{"temperature_2", "sensor/temperature_2/raw", "sensor/temperature_2/proc"},
+		{"motor_current", "sensor/motor_current/raw", "sensor/motor_current/proc"},
+		{"gas_sensor", "sensor/gas_sensor/raw", "sensor/gas_sensor/proc"},
+		{"mpu6050_temperature", "sensor/mpu6050_temperature/raw", "sensor/mpu6050_temperature/proc"},
+		{"mpu6050_gyro_z", "sensor/mpu6050_gyro_z/raw", "sensor/mpu6050_gyro_z/proc"},
+		{"mpu6050_accel_z", "sensor/mpu6050_accel_z/raw", "sensor/mpu6050_accel_z/proc"},
+		{"mpu6050_gyro_y", "sensor/mpu6050_gyro_y/raw", "sensor/mpu6050_gyro_y/proc"},
+		{"mpu6050_accel_y", "sensor/mpu6050_accel_y/raw", "sensor/mpu6050_accel_y/proc"},
+		{"mpu6050_gyro_x", "sensor/mpu6050_gyro_x/raw", "sensor/mpu6050_gyro_x/proc"},
+		{"mpu6050_accel_x", "sensor/mpu6050_accel_x/raw", "sensor/mpu6050_accel_x/proc"},
+		{"ina226_power", "sensor/ina226_power/raw", "sensor/ina226_power/proc"},
+		{"ina226_current", "sensor/ina226_current/raw", "sensor/ina226_current/proc"},
+		{"ina226_shunt_voltage", "sensor/ina226_shunt_voltage/raw", "sensor/ina226_shunt_voltage/proc"},
+	}
+
+	for _, sensor := range sensors {
+		topicKey := fmt.Sprintf("+/sensor/%s/state", sensor.Key)
+		topicHandlers[topicKey] = TopicHandler{
+			OutputRawTopic:  sensor.RawSuffix,
+			OutputProcTopic: sensor.ProcSuffix,
+		}
+	}
+
+	baseTopic := "yarila682@yandex.ru/sensor/ROBBO_protos_%02d_%s/state"
+	for i := 1; i <= 8; i++ {
+		for _, sensor := range sensors {
+			topic := fmt.Sprintf(baseTopic, i, sensor.Key)
+			topicHandlers[topic] = TopicHandler{
+				OutputRawTopic:  sensor.RawSuffix,
+				OutputProcTopic: sensor.ProcSuffix,
+			}
+		}
+	}
 }
 
 const ConnectTopic = "sensor/connect"
@@ -98,8 +75,17 @@ func messageHandler(loggers logger.Loggers) mqtt.MessageHandler {
 			return
 		}
 
-		serialNumber := parts[0]
-		dataKey := parts[2]
+		re := regexp.MustCompile(`([^/]+)@[^/]+/sensor/(.+)/state`)
+		matches := re.FindStringSubmatch(msg.Topic())
+		if len(matches) != 3 {
+			loggers.Err.Printf("Failed to parse topic: '%s'", msg.Topic())
+			return
+		}
+
+		serialNumber := matches[1]
+		dataKey := matches[2]
+
+		loggers.Info.Printf("Parsed serialNumber: %s, dataKey: %s", serialNumber, dataKey)
 
 		topicKey := fmt.Sprintf("+/sensor/%s/state", dataKey)
 		handler, exists := topicHandlers[topicKey]

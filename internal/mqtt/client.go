@@ -29,6 +29,7 @@ func InitMQTTClient(loggers logger.Loggers) mqtt.Client {
 }
 
 func SubscribeToTopics(client mqtt.Client, loggers logger.Loggers) {
+	initTopicHandlers()
 	for topic := range topicHandlers {
 		token := client.Subscribe(topic, 0, nil)
 		token.Wait()
