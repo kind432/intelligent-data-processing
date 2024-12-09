@@ -74,8 +74,8 @@ func messageHandler(loggers logger.Loggers) mqtt.MessageHandler {
 			return
 		}
 
-		serialNumber := strings.Replace(matches[2], "_", "-", -1) // заменяем _ на -
-		dataKey := strings.Split(matches[2], "_")[1]              // разделяем по "_" и получаем последний элемент
+		serialNumber := strings.Replace(matches[2], "_", "-", -1)
+		dataKey := strings.Split(matches[2], "_")[1]
 
 		loggers.Info.Printf("Parsed serialNumber: %s, dataKey: %s", serialNumber, dataKey)
 
