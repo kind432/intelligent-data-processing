@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/spf13/viper"
 	"intelligent-data-processing/pkg/logger"
 	"regexp"
 	"strings"
@@ -38,7 +39,7 @@ func initTopicHandlers() {
 		{"ina226_shunt_voltage", "sensor/ina226_shunt_voltage/raw", "sensor/ina226_shunt_voltage/proc"},
 	}
 
-	baseTopic := "yarila682@yandex.ru/sensor/ROBBO_protos_%02d_%s/state"
+	baseTopic := viper.GetString("mqtt_username") + "/sensor/ROBBO_protos_%02d_%s/state"
 	for i := 1; i <= 8; i++ {
 		for _, sensor := range sensors {
 			topic := fmt.Sprintf(baseTopic, i, sensor.Key)
@@ -67,20 +68,19 @@ func messageHandler(loggers logger.Loggers) mqtt.MessageHandler {
 			return
 		}
 
-		re := regexp.MustCompile(`([^/]+)@[^/]+/sensor/(ROBBO_protos_\d+_.+)/state`)
+		re := regexp.MustCompile(`([^/]+)@[^/]+/sensor/([^/]+)/state`)
 		matches := re.FindStringSubmatch(msg.Topic())
 		if len(matches) != 3 {
-			loggers.Err.Printf("Failed to parse topic: '%s'", msg.Topic())
+			loggers.Err.Printf("Failed to parse topic: '%s'. Matches length: %d\n", msg.Topic(), len(matches))
 			return
 		}
 
-		serialNumber := strings.Replace(matches[2], "_", "-", -1)
-		dataKey := strings.Split(matches[2], "_")[1]
+		serialParts := strings.Split(matches[2], "_")
+		serialNumber := fmt.Sprintf("%s-%s-%s", serialParts[0], serialParts[1], serialParts[2])
+		dataKey := strings.Join(serialParts[3:], "_")
 
 		loggers.Info.Printf("Parsed serialNumber: %s, dataKey: %s", serialNumber, dataKey)
-
-		topicKey := fmt.Sprintf("+/sensor/%s/state", dataKey)
-		handler, exists := topicHandlers[topicKey]
+		handler, exists := topicHandlers[msg.Topic()]
 		if !exists {
 			loggers.Err.Printf("No handler found for topic '%s'", msg.Topic())
 			return
