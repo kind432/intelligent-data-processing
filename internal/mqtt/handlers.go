@@ -38,14 +38,6 @@ func initTopicHandlers() {
 		{"ina226_shunt_voltage", "sensor/ina226_shunt_voltage/raw", "sensor/ina226_shunt_voltage/proc"},
 	}
 
-	for _, sensor := range sensors {
-		topicKey := fmt.Sprintf("+/sensor/%s/state", sensor.Key)
-		topicHandlers[topicKey] = TopicHandler{
-			OutputRawTopic:  sensor.RawSuffix,
-			OutputProcTopic: sensor.ProcSuffix,
-		}
-	}
-
 	baseTopic := "yarila682@yandex.ru/sensor/ROBBO_protos_%02d_%s/state"
 	for i := 1; i <= 8; i++ {
 		for _, sensor := range sensors {
