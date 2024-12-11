@@ -33,11 +33,7 @@ func getSensorData(serialNumber, dataKey string) *topicsData {
 	return data
 }
 
-func ProcessSensorData(serialNumber, dataKey string, rawValue float64) (
-	rawData map[string]interface{},
-	procData map[string]interface{},
-	err error,
-) {
+func ProcessSensorData(serialNumber, dataKey string, rawValue float64) (map[string]interface{}, map[string]interface{}, error) {
 	sensorData := getSensorData(serialNumber, dataKey)
 
 	sensorData.mu.Lock()
@@ -54,9 +50,13 @@ func ProcessSensorData(serialNumber, dataKey string, rawValue float64) (
 	}
 	average := sum / float64(len(sensorData.values))
 
-	rawData["sensorType"] = "default"
-	rawData[dataKey] = rawValue
-	procData["sensorType"] = "default"
-	procData["proc_"+dataKey] = average
+	rawData := map[string]interface{}{
+		"sensorType": "default",
+		dataKey:      rawValue,
+	}
+	procData := map[string]interface{}{
+		"sensorType":      "default",
+		"proc_" + dataKey: average,
+	}
 	return rawData, procData, nil
 }
