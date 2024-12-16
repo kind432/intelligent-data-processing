@@ -5,6 +5,7 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/spf13/viper"
+	"intelligent-data-processing/internal/device"
 	"intelligent-data-processing/internal/sensor"
 	"intelligent-data-processing/pkg/logger"
 	"intelligent-data-processing/pkg/utils"
@@ -16,8 +17,8 @@ type Handler struct {
 	TopicHandlers map[string]TopicHandler
 }
 
-func NewHandler(logger logger.Logger) *Handler {
-	return &Handler{
+func NewHandler(logger logger.Logger) Handler {
+	return Handler{
 		Logger:        logger,
 		TopicHandlers: make(map[string]TopicHandler),
 	}
@@ -72,6 +73,10 @@ func (h Handler) HandleSensorData(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
+	if !device.IsDeviceConnected(serialNumber) {
+		h.SendConnectMessage(client, serialNumber)
+	}
+
 	rawValue, err := strconv.ParseFloat(string(msg.Payload()), 64)
 	if err != nil {
 		h.Logger.Err.Printf("Invalid value format: '%s': %v", msg.Payload(), err)
@@ -112,6 +117,20 @@ func (h Handler) HandlePowerRelayCommand(client mqtt.Client, msg mqtt.Message) {
 
 	relayTopic := fmt.Sprintf("%s/switch/%s_power_relay/command", viper.GetString("mqtt_username"), serialNumber)
 	h.publishMessage(client, relayTopic, relayState)
+}
+
+func (h Handler) SendConnectMessage(client mqtt.Client, serialNumber string) {
+	data := map[string]string{"sensorType": "default"}
+	topic := fmt.Sprintf("%s/sensor/connect", serialNumber)
+	device.AddOrUpdateDevice(serialNumber, true)
+	h.publishMessage(client, topic, data)
+}
+
+func (h Handler) SendDisconnectMessage(client mqtt.Client, serialNumber string) {
+	data := map[string]string{"sensorType": "default"}
+	topic := fmt.Sprintf("%s/sensor/disconnect", serialNumber)
+	device.AddOrUpdateDevice(serialNumber, false)
+	h.publishMessage(client, topic, data)
 }
 
 func (h Handler) publishMessage(client mqtt.Client, topic string, data interface{}) {

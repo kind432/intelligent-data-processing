@@ -2,6 +2,8 @@ package main
 
 import (
 	"intelligent-data-processing/internal/config"
+	"intelligent-data-processing/internal/device"
+	"intelligent-data-processing/internal/handler"
 	"intelligent-data-processing/internal/mqtt"
 	"intelligent-data-processing/pkg/logger"
 	"log"
@@ -16,8 +18,12 @@ func main() {
 	}
 
 	loggers := logger.InitLogger()
-	client := mqtt.InitMQTTClient(loggers)
-	defer client.Disconnect(250)
+	h := handler.NewHandler(loggers)
+	client := mqtt.InitMQTTClient(h, loggers)
+	defer func() {
+		device.DisconnectAllDevices(h, client)
+		client.Disconnect(250)
+	}()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)

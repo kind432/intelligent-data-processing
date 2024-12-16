@@ -12,7 +12,7 @@ type TopicHandler struct {
 	HandlerFunc     func(mqtt.Client, mqtt.Message)
 }
 
-func initTopicHandlers(h *Handler) {
+func initTopicHandlers(h Handler) {
 	baseSensorTopic := viper.GetString("mqtt_username") + "/sensor/ROBBO_protos_%02d_%s/state"
 
 	sensors := []struct {
@@ -57,7 +57,7 @@ func initTopicHandlers(h *Handler) {
 	}
 }
 
-func SubscribeToTopics(h *Handler, client mqtt.Client) {
+func SubscribeToTopics(h Handler, client mqtt.Client) {
 	initTopicHandlers(h)
 	for topic := range h.TopicHandlers {
 		token := client.Subscribe(topic, 0, nil)
