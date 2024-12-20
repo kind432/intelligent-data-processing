@@ -1,8 +1,6 @@
 package device
 
 import (
-	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"intelligent-data-processing/internal/handler"
 	"sync"
 )
 
@@ -53,11 +51,4 @@ func IsDeviceConnected(serialNumber string) bool {
 		return true
 	}
 	return false
-}
-
-func DisconnectAllDevices(h handler.Handler, client mqtt.Client) {
-	connectedDevices := getConnectedDevices()
-	for _, serialNumber := range connectedDevices {
-		h.SendDisconnectMessage(client, serialNumber)
-	}
 }

@@ -8,7 +8,8 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-func InitMQTTClient(h handler.Handler, logger logger.Logger) mqtt.Client {
+func InitMQTTClient(logger logger.Logger) mqtt.Client {
+	h := handler.NewHandler(logger)
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(viper.GetString("mqtt_broker_address"))
 	opts.SetClientID("mvp_processor")
