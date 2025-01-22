@@ -44,15 +44,22 @@ func (h Handler) MessageHandler() mqtt.MessageHandler {
 }
 
 func (h Handler) HandlePowerRelayState(client mqtt.Client, msg mqtt.Message) {
+	var rawValue bool
+
 	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
 	if err != nil {
 		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
 		return
 	}
 
-	rawValue, err := strconv.ParseBool(string(msg.Payload()))
-	if err != nil {
-		h.Logger.Err.Printf("Invalid value format: '%s': %v", msg.Payload(), err)
+	rawValueStr := string(msg.Payload())
+	switch rawValueStr {
+	case "ON":
+		rawValue = true
+	case "OFF":
+		rawValue = false
+	default:
+		h.Logger.Err.Printf("Unexpected payload value: '%s'", rawValueStr)
 		return
 	}
 
@@ -109,6 +116,11 @@ func (h Handler) HandlePowerRelayCommand(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
+	relayStateStr := "OFF"
+	if relayState {
+		relayStateStr = "ON"
+	}
+
 	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
 	if err != nil {
 		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
@@ -116,7 +128,7 @@ func (h Handler) HandlePowerRelayCommand(client mqtt.Client, msg mqtt.Message) {
 	}
 
 	relayTopic := fmt.Sprintf("%s/switch/%s_power_relay/command", viper.GetString("mqtt_username"), serialNumber)
-	h.publishMessage(client, relayTopic, relayState)
+	h.publishMessage(client, relayTopic, relayStateStr)
 }
 
 func (h Handler) SendConnectMessage(client mqtt.Client, serialNumber string) {
