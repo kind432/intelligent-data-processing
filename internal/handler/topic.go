@@ -59,7 +59,7 @@ func initTopicHandlers(h Handler) {
 		redLedStateTopic := fmt.Sprintf("%s/sensor/robbo_protos_%02d_red_led/state", viper.GetString("mqtt_username"), i)
 		h.TopicHandlers[redLedStateTopic] = TopicHandler{
 			OutputRawTopic: "sensor/red_led/raw",
-			HandlerFunc:    h.HandlePowerRelayState,
+			HandlerFunc:    h.HandleRedLedState,
 		}
 	}
 
