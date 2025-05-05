@@ -73,6 +73,36 @@ func (h Handler) HandlePowerRelayState(client mqtt.Client, msg mqtt.Message) {
 	h.publishMessage(client, outputRawTopic, rawData)
 }
 
+func (h Handler) HandleRedLedState(client mqtt.Client, msg mqtt.Message) {
+	var rawValue bool
+
+	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
+	if err != nil {
+		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
+		return
+	}
+
+	rawValueStr := string(msg.Payload())
+	switch rawValueStr {
+	case "ON":
+		rawValue = true
+	case "OFF":
+		rawValue = false
+	default:
+		h.Logger.Err.Printf("Unexpected payload value: '%s'", rawValueStr)
+		return
+	}
+
+	rawData := map[string]interface{}{
+		"sensorType": "default",
+		"red_led":    rawValue,
+	}
+
+	handler := h.TopicHandlers[msg.Topic()]
+	outputRawTopic := fmt.Sprintf("%s/%s", serialNumber, handler.OutputRawTopic)
+	h.publishMessage(client, outputRawTopic, rawData)
+}
+
 func (h Handler) HandleSensorData(client mqtt.Client, msg mqtt.Message) {
 	serialNumber, dataKey, err := utils.ParseSensorTopic(msg.Topic())
 	if err != nil {
@@ -129,6 +159,34 @@ func (h Handler) HandlePowerRelayCommand(client mqtt.Client, msg mqtt.Message) {
 
 	relayTopic := fmt.Sprintf("%s/switch/%s_power_relay/command", viper.GetString("mqtt_username"), serialNumber)
 	h.publishMessage(client, relayTopic, relayStateStr)
+}
+
+func (h Handler) HandleRedLedCommand(client mqtt.Client, msg mqtt.Message) {
+	var command map[string]bool
+	if err := json.Unmarshal(msg.Payload(), &command); err != nil {
+		h.Logger.Err.Printf("Failed to parse command: %v", err)
+		return
+	}
+
+	redLedState, exists := command["red_led"]
+	if !exists {
+		h.Logger.Err.Printf("Missing 'red_led' in command payload")
+		return
+	}
+
+	redLedStateStr := "OFF"
+	if redLedState {
+		redLedStateStr = "ON"
+	}
+
+	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
+	if err != nil {
+		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
+		return
+	}
+
+	relayTopic := fmt.Sprintf("%s/sensor/%s_red_led/command", viper.GetString("mqtt_username"), serialNumber)
+	h.publishMessage(client, relayTopic, redLedStateStr)
 }
 
 func (h Handler) SendConnectMessage(client mqtt.Client, serialNumber string) {
