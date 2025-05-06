@@ -221,6 +221,64 @@ func (h Handler) HandlePowerRelayCommand(client mqtt.Client, msg mqtt.Message) {
 	h.publishMessage(client, relayTopic, relayStateStr)
 }
 
+func (h Handler) HandleYellowLedState(client mqtt.Client, msg mqtt.Message) {
+	var rawValue bool
+
+	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
+	if err != nil {
+		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
+		return
+	}
+
+	rawValueStr := string(msg.Payload())
+	switch rawValueStr {
+	case "ON":
+		rawValue = true
+	case "OFF":
+		rawValue = false
+	default:
+		h.Logger.Err.Printf("Unexpected payload value: '%s'", rawValueStr)
+		return
+	}
+
+	rawData := map[string]interface{}{
+		"sensorType": "default",
+		"yellow_led": rawValue,
+	}
+
+	handler := h.TopicHandlers[msg.Topic()]
+	outputRawTopic := fmt.Sprintf("%s/%s", serialNumber, handler.OutputRawTopic)
+	h.publishMessage(client, outputRawTopic, rawData)
+}
+
+func (h Handler) HandleYellowLedCommand(client mqtt.Client, msg mqtt.Message) {
+	var command map[string]bool
+	if err := json.Unmarshal(msg.Payload(), &command); err != nil {
+		h.Logger.Err.Printf("Failed to parse command: %v", err)
+		return
+	}
+
+	yellowLedState, exists := command["yellow_led"]
+	if !exists {
+		h.Logger.Err.Printf("Missing 'yellow_led' in command payload")
+		return
+	}
+
+	yellowLedStateStr := "OFF"
+	if yellowLedState {
+		yellowLedStateStr = "ON"
+	}
+
+	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
+	if err != nil {
+		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
+		return
+	}
+
+	relayTopic := fmt.Sprintf("%s/switch/%s_yellow_led/command", viper.GetString("mqtt_username"), serialNumber)
+	h.publishMessage(client, relayTopic, yellowLedStateStr)
+}
+
 func (h Handler) HandleRedLedState(client mqtt.Client, msg mqtt.Message) {
 	var rawValue bool
 

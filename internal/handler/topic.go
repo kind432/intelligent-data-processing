@@ -66,10 +66,15 @@ func initTopicHandlers(h Handler) {
 			OutputRawTopic: "sensor/prutok_2/raw",
 			HandlerFunc:    h.HandlePrutok2State,
 		}
-		redLedStateTopic := fmt.Sprintf("%s/sensor/robbo_protos_%02d_red_led/state", viper.GetString("mqtt_username"), i)
+		redLedStateTopic := fmt.Sprintf("%s/switch/robbo_protos_%02d_red_led/state", viper.GetString("mqtt_username"), i)
 		h.TopicHandlers[redLedStateTopic] = TopicHandler{
-			OutputRawTopic: "sensor/red_led/raw",
+			OutputRawTopic: "switch/red_led/raw",
 			HandlerFunc:    h.HandleRedLedState,
+		}
+		yellowLedStateTopic := fmt.Sprintf("%s/switch/robbo_protos_%02d_yellow_led/state", viper.GetString("mqtt_username"), i)
+		h.TopicHandlers[yellowLedStateTopic] = TopicHandler{
+			OutputRawTopic: "switch/yellow_led/raw",
+			HandlerFunc:    h.HandleYellowLedState,
 		}
 		powerRelayStateTopic := fmt.Sprintf("%s/switch/robbo_protos_%02d_power_relay/state", viper.GetString("mqtt_username"), i)
 		h.TopicHandlers[powerRelayStateTopic] = TopicHandler{
@@ -86,8 +91,11 @@ func initTopicHandlers(h Handler) {
 	h.TopicHandlers["+/switch/power_relay/command"] = TopicHandler{
 		HandlerFunc: h.HandlePowerRelayCommand,
 	}
-	h.TopicHandlers["+/sensor/red_led/command"] = TopicHandler{
+	h.TopicHandlers["+/switch/red_led/command"] = TopicHandler{
 		HandlerFunc: h.HandleRedLedCommand,
+	}
+	h.TopicHandlers["+/switch/yellow_led/command"] = TopicHandler{
+		HandlerFunc: h.HandleYellowLedCommand,
 	}
 	h.TopicHandlers["+/switch/mpu_choose/command"] = TopicHandler{
 		HandlerFunc: h.HandleMPUChooseCommand,
