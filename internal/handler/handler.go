@@ -43,7 +43,7 @@ func (h Handler) MessageHandler() mqtt.MessageHandler {
 	}
 }
 
-func (h Handler) HandleSensorData(client mqtt.Client, msg mqtt.Message) {
+func (h Handler) HandleFloatSensorData(client mqtt.Client, msg mqtt.Message) {
 	serialNumber, dataKey, err := utils.ParseSensorTopic(msg.Topic())
 	if err != nil {
 		h.Logger.Err.Printf("Error parsing topic '%s': %v", msg.Topic(), err)
@@ -71,6 +71,96 @@ func (h Handler) HandleSensorData(client mqtt.Client, msg mqtt.Message) {
 	outputProcTopic := fmt.Sprintf("%s/%s", serialNumber, handler.OutputProcTopic)
 	h.publishMessage(client, outputRawTopic, rawData)
 	h.publishMessage(client, outputProcTopic, procData)
+}
+
+func (h Handler) HandlePrutok1State(client mqtt.Client, msg mqtt.Message) {
+	var rawValue bool
+
+	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
+	if err != nil {
+		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
+		return
+	}
+
+	rawValueStr := string(msg.Payload())
+	switch rawValueStr {
+	case "ON":
+		rawValue = true
+	case "OFF":
+		rawValue = false
+	default:
+		h.Logger.Err.Printf("Unexpected payload value: '%s'", rawValueStr)
+		return
+	}
+
+	rawData := map[string]interface{}{
+		"sensorType": "default",
+		"prutok_1":   rawValue,
+	}
+
+	handler := h.TopicHandlers[msg.Topic()]
+	outputRawTopic := fmt.Sprintf("%s/%s", serialNumber, handler.OutputRawTopic)
+	h.publishMessage(client, outputRawTopic, rawData)
+}
+
+func (h Handler) HandlePrutok2State(client mqtt.Client, msg mqtt.Message) {
+	var rawValue bool
+
+	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
+	if err != nil {
+		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
+		return
+	}
+
+	rawValueStr := string(msg.Payload())
+	switch rawValueStr {
+	case "ON":
+		rawValue = true
+	case "OFF":
+		rawValue = false
+	default:
+		h.Logger.Err.Printf("Unexpected payload value: '%s'", rawValueStr)
+		return
+	}
+
+	rawData := map[string]interface{}{
+		"sensorType": "default",
+		"prutok_2":   rawValue,
+	}
+
+	handler := h.TopicHandlers[msg.Topic()]
+	outputRawTopic := fmt.Sprintf("%s/%s", serialNumber, handler.OutputRawTopic)
+	h.publishMessage(client, outputRawTopic, rawData)
+}
+
+func (h Handler) HandleDoorState(client mqtt.Client, msg mqtt.Message) {
+	var rawValue bool
+
+	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
+	if err != nil {
+		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
+		return
+	}
+
+	rawValueStr := string(msg.Payload())
+	switch rawValueStr {
+	case "ON":
+		rawValue = true
+	case "OFF":
+		rawValue = false
+	default:
+		h.Logger.Err.Printf("Unexpected payload value: '%s'", rawValueStr)
+		return
+	}
+
+	rawData := map[string]interface{}{
+		"sensorType": "default",
+		"door":       rawValue,
+	}
+
+	handler := h.TopicHandlers[msg.Topic()]
+	outputRawTopic := fmt.Sprintf("%s/%s", serialNumber, handler.OutputRawTopic)
+	h.publishMessage(client, outputRawTopic, rawData)
 }
 
 func (h Handler) HandlePowerRelayState(client mqtt.Client, msg mqtt.Message) {
@@ -185,7 +275,7 @@ func (h Handler) HandleRedLedCommand(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
-	relayTopic := fmt.Sprintf("%s/sensor/%s_red_led/command", viper.GetString("mqtt_username"), serialNumber)
+	relayTopic := fmt.Sprintf("%s/switch/%s_red_led/command", viper.GetString("mqtt_username"), serialNumber)
 	h.publishMessage(client, relayTopic, redLedStateStr)
 }
 
