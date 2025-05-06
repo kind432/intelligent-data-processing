@@ -163,6 +163,36 @@ func (h Handler) HandleDoorState(client mqtt.Client, msg mqtt.Message) {
 	h.publishMessage(client, outputRawTopic, rawData)
 }
 
+func (h Handler) HandleSmokeState(client mqtt.Client, msg mqtt.Message) {
+	var rawValue bool
+
+	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
+	if err != nil {
+		h.Logger.Err.Printf("Invalid topic format: '%s': %v", msg.Topic(), err)
+		return
+	}
+
+	rawValueStr := string(msg.Payload())
+	switch rawValueStr {
+	case "ON":
+		rawValue = true
+	case "OFF":
+		rawValue = false
+	default:
+		h.Logger.Err.Printf("Unexpected payload value: '%s'", rawValueStr)
+		return
+	}
+
+	rawData := map[string]interface{}{
+		"sensorType": "default",
+		"smoke":      rawValue,
+	}
+
+	handler := h.TopicHandlers[msg.Topic()]
+	outputRawTopic := fmt.Sprintf("%s/%s", serialNumber, handler.OutputRawTopic)
+	h.publishMessage(client, outputRawTopic, rawData)
+}
+
 func (h Handler) HandlePowerRelayState(client mqtt.Client, msg mqtt.Message) {
 	var rawValue bool
 

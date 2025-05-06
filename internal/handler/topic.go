@@ -51,20 +51,25 @@ func initTopicHandlers(h Handler) {
 			}
 		}
 
-		doorStateTopic := fmt.Sprintf("%s/sensor/robbo_protos_%02d_door/state", viper.GetString("mqtt_username"), i)
+		doorStateTopic := fmt.Sprintf("%s/binary_sensor/robbo_protos_%02d_door/state", viper.GetString("mqtt_username"), i)
 		h.TopicHandlers[doorStateTopic] = TopicHandler{
-			OutputRawTopic: "sensor/door/raw",
+			OutputRawTopic: "binary_sensor/door/raw",
 			HandlerFunc:    h.HandleDoorState,
 		}
-		prutok1StateTopic := fmt.Sprintf("%s/sensor/robbo_protos_%02d_prutok_1/state", viper.GetString("mqtt_username"), i)
+		prutok1StateTopic := fmt.Sprintf("%s/binary_sensor/robbo_protos_%02d_prutok_1/state", viper.GetString("mqtt_username"), i)
 		h.TopicHandlers[prutok1StateTopic] = TopicHandler{
-			OutputRawTopic: "sensor/prutok_1/raw",
+			OutputRawTopic: "binary_sensor/prutok_1/raw",
 			HandlerFunc:    h.HandlePrutok1State,
 		}
-		prutok2StateTopic := fmt.Sprintf("%s/sensor/robbo_protos_%02d_prutok_2/state", viper.GetString("mqtt_username"), i)
+		prutok2StateTopic := fmt.Sprintf("%s/binary_sensor/robbo_protos_%02d_prutok_2/state", viper.GetString("mqtt_username"), i)
 		h.TopicHandlers[prutok2StateTopic] = TopicHandler{
-			OutputRawTopic: "sensor/prutok_2/raw",
+			OutputRawTopic: "binary_sensor/prutok_2/raw",
 			HandlerFunc:    h.HandlePrutok2State,
+		}
+		smokeStateTopic := fmt.Sprintf("%s/binary_sensor/robbo_protos_%02d_smoke/state", viper.GetString("mqtt_username"), i)
+		h.TopicHandlers[smokeStateTopic] = TopicHandler{
+			OutputRawTopic: "binary_sensor/smoke/raw",
+			HandlerFunc:    h.HandleSmokeState,
 		}
 		redLedStateTopic := fmt.Sprintf("%s/switch/robbo_protos_%02d_red_led/state", viper.GetString("mqtt_username"), i)
 		h.TopicHandlers[redLedStateTopic] = TopicHandler{
