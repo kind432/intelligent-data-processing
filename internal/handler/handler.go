@@ -294,9 +294,9 @@ func (h Handler) HandleYellowLedCommand(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
-	yellowLedStateStr := "OFF"
+	status := 0
 	if yellowLedState {
-		yellowLedStateStr = "ON"
+		status = 1
 	}
 
 	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
@@ -305,8 +305,14 @@ func (h Handler) HandleYellowLedCommand(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
+	payload, err := json.Marshal(map[string]int{"status": status})
+	if err != nil {
+		h.Logger.Err.Printf("Failed to marshal status payload: %v", err)
+		return
+	}
+
 	relayTopic := fmt.Sprintf("%s/switch/%s_yellow_led/command", viper.GetString("mqtt_username"), serialNumber)
-	h.publishMessage(client, relayTopic, yellowLedStateStr)
+	h.publishMessage(client, relayTopic, string(payload))
 }
 
 func (h Handler) HandleRedLedState(client mqtt.Client, msg mqtt.Message) {
@@ -352,9 +358,9 @@ func (h Handler) HandleRedLedCommand(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
-	redLedStateStr := "OFF"
+	status := 0
 	if redLedState {
-		redLedStateStr = "ON"
+		status = 1
 	}
 
 	serialNumber, err := utils.ParseSwitchTopic(msg.Topic())
@@ -363,8 +369,14 @@ func (h Handler) HandleRedLedCommand(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
+	payload, err := json.Marshal(map[string]int{"status": status})
+	if err != nil {
+		h.Logger.Err.Printf("Failed to marshal status payload: %v", err)
+		return
+	}
+
 	relayTopic := fmt.Sprintf("%s/switch/%s_red_led/command", viper.GetString("mqtt_username"), serialNumber)
-	h.publishMessage(client, relayTopic, redLedStateStr)
+	h.publishMessage(client, relayTopic, string(payload))
 }
 
 func (h Handler) HandleMPUChooseState(client mqtt.Client, msg mqtt.Message) {
