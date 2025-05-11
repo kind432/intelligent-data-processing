@@ -440,16 +440,25 @@ func (h Handler) SendDisconnectMessage(client mqtt.Client, serialNumber string) 
 }
 
 func (h Handler) publishMessage(client mqtt.Client, topic string, data interface{}) {
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		h.Logger.Err.Printf("Error marshalling data: %v", err)
-		return
+	var payload []byte
+
+	switch v := data.(type) {
+	case string:
+		payload = []byte(v)
+	default:
+		var err error
+		payload, err = json.Marshal(v)
+		if err != nil {
+			h.Logger.Err.Printf("Error marshalling data: %v", err)
+			return
+		}
 	}
-	token := client.Publish(topic, 0, false, jsonData)
+
+	token := client.Publish(topic, 0, false, payload)
 	token.Wait()
 	if token.Error() != nil {
 		h.Logger.Err.Printf("Error publishing message to '%s': %v", topic, token.Error())
 		return
 	}
-	h.Logger.Info.Printf("Published message to '%s': %s", topic, jsonData)
+	h.Logger.Info.Printf("Published message to '%s': %s", topic, payload)
 }
