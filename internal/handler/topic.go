@@ -14,6 +14,20 @@ type TopicHandler struct {
 
 func initTopicHandlers(h Handler) {
 	baseSensorTopic := viper.GetString("mqtt_username") + "/sensor/robbo_protos_%02d_%s/state"
+	commonSensorTopic := viper.GetString("mqtt_username") + "/sensor/robbo_protos_%s/state"
+
+	commonSensors := []struct {
+		Key        string
+		RawSuffix  string
+		ProcSuffix string
+	}{
+		{"mpu6500_carriage_accel_x", "sensor/mpu6500_carriage_accel_x/raw", "sensor/mpu6500_carriage_accel_x/proc"},
+		{"mpu6500_carriage_accel_y", "sensor/mpu6500_carriage_accel_y/raw", "sensor/mpu6500_carriage_accel_y/proc"},
+		{"mpu6500_carriage_accel_z", "sensor/mpu6500_carriage_accel_z/raw", "sensor/mpu6500_carriage_accel_z/proc"},
+		{"mpu6500_carriage_gyro_x", "sensor/mpu6500_carriage_gyro_x/raw", "sensor/mpu6500_carriage_gyro_x/proc"},
+		{"mpu6500_carriage_gyro_y", "sensor/mpu6500_carriage_gyro_y/raw", "sensor/mpu6500_carriage_gyro_y/proc"},
+		{"mpu6500_carriage_gyro_z", "sensor/mpu6500_carriage_gyro_z/raw", "sensor/mpu6500_carriage_gyro_z/proc"},
+	}
 
 	sensors := []struct {
 		Key        string
@@ -30,15 +44,18 @@ func initTopicHandlers(h Handler) {
 		{"air_temperature", "sensor/air_temperature/raw", "sensor/air_temperature/proc"},
 		{"ina226_laser_current", "sensor/ina226_laser_current/raw", "sensor/ina226_laser_current/proc"},
 		{"ina226_extruder_current", "sensor/ina226_extruder_current/raw", "sensor/ina226_extruder_current/proc"},
-		{"mpu6500_carriage_accel_x", "sensor/mpu6500_carriage_accel_x/raw", "sensor/mpu6500_carriage_accel_x/proc"},
-		{"mpu6500_carriage_accel_y", "sensor/mpu6500_carriage_accel_y/raw", "sensor/mpu6500_carriage_accel_y/proc"},
-		{"mpu6500_carriage_accel_z", "sensor/mpu6500_carriage_accel_z/raw", "sensor/mpu6500_carriage_accel_z/proc"},
-		{"mpu6500_carriage_gyro_x", "sensor/mpu6500_carriage_gyro_x/raw", "sensor/mpu6500_carriage_gyro_x/proc"},
-		{"mpu6500_carriage_gyro_y", "sensor/mpu6500_carriage_gyro_y/raw", "sensor/mpu6500_carriage_gyro_y/proc"},
-		{"mpu6500_carriage_gyro_z", "sensor/mpu6500_carriage_gyro_z/raw", "sensor/mpu6500_carriage_gyro_z/proc"},
 		{"tachometer", "sensor/tachometer/raw", "sensor/tachometer/proc"},
 		{"smoke_sensor", "sensor/smoke_sensor/raw", "sensor/smoke_sensor/proc"},
 		{"input_current", "sensor/input_current/raw", "sensor/input_current/proc"},
+	}
+
+	for _, sensor := range commonSensors {
+		topic := fmt.Sprintf(commonSensorTopic, sensor.Key)
+		h.TopicHandlers[topic] = TopicHandler{
+			OutputRawTopic:  sensor.RawSuffix,
+			OutputProcTopic: sensor.ProcSuffix,
+			HandlerFunc:     h.HandleFloatSensorData,
+		}
 	}
 
 	for i := 1; i <= 8; i++ {
