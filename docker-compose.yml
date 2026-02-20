@@ -1,7 +1,6 @@
 services:
   app:
-    container_name: intelligent-data-processing
     build:
       context: .
-      dockerfile: Dockerfile
-
+    container_name: intelligent-data-processing
+    restart: unless-stopped

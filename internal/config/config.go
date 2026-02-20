@@ -4,22 +4,17 @@ import (
 	"github.com/spf13/viper"
 )
 
-func Init() error {
+func New() error {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
 	viper.AddConfigPath("./configs")
-	err := viper.ReadInConfig()
-	if err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
 
-	viper.SetConfigName("dev")
+	viper.SetConfigName("development")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(viper.GetString("env.path"))
-
-	err = viper.MergeInConfig()
-	if err != nil {
-		return err
-	}
+	_ = viper.MergeInConfig() // Игнорируем ошибку, если dev.env нет
 	return nil
 }

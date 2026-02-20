@@ -1,11 +1,18 @@
-FROM golang:1.20 AS builder
+FROM golang:1.20-alpine AS builder
 
-WORKDIR /intelligent_data_processing
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
 
 COPY . .
 
-RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -o processor "./cmd/main.go"
 
-RUN go build -o app ./main.go
 
-CMD ["/intelligent_data_processing/app"]
+FROM alpine:latest
+
+WORKDIR /app
+COPY --from=builder /app/processor .
+COPY --from=builder /app/configs ./configs
+
+CMD ["./processor"]
